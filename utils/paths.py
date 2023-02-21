@@ -18,28 +18,28 @@ def get_paths(path):
 
     # paths to load forecasts and observations
     if path == 'server':
-        cache_path = '../../../../Data/s2s_ai/data'
-        path_add_vars = '../../../../Data/s2s_ai'
+        cache_path = '../../../../../Data/s2s_ai/data'
+        path_add_vars = '../../../../../Data/s2s_ai'
     elif path == 'local':
         cache_path = '../../s2s-ai-challenge-my-fork/template/data'
         path_add_vars = '../../s2s-ai-challenge-my-fork/data'
 
     # path to models
-    if path == 'local':
-        path_model = '../results/trained_models/'
+    if path == 'server':
+        path_model = 'results/trained_models/'
     else:
-        path_model = './models/'
+        path_model = '../results/trained_models/'
 
     # path to save predictions
     if path == 'server':
-        path_pred = '../../../../Data/s2s_ai/predictions/'
+        path_pred = '../../../../../Data/s2s_ai/predictions/'
     else:
         path_pred = '../results/predictions/'
 
     # path to results.csv
-    if path == 'local':
-        path_results = '../results/'
+    if path == 'server':
+        path_results = 'results/'
     else:
-        path_results = ''
+        path_results = '../results/'
 
     return cache_path, path_add_vars, path_model, path_pred, path_results

@@ -107,7 +107,7 @@ class StandardCnn:
         else:
             cnn = Model(inputs=[inp_imgs], outputs=out)
 
-        cnn.summary()
+        # cnn.summary()
 
         return cnn
 
