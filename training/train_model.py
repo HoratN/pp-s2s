@@ -32,7 +32,7 @@ warnings.simplefilter("ignore")
 import os
 import random as rn
 
-path_data = 'server'  # 'local'  # 
+path_data = 'server'  # 'local'  #
 folder = 'main'
 cache_path, path_add_vars, path_model, path_pred, path_results = get_paths(path_data)
 
@@ -60,7 +60,7 @@ for v in ['t2m', 'tp']:
         # models architecture and hyper-parameters
         # =============================================================================
 
-        model_architecture = 'unet'  # 'basis_func'# 'conv_trans'  #
+        model_architecture = 'basis_func'# 'conv_trans'  #'unet'  #
         train_patches = True  #  False  #
         if model_architecture != 'unet':
             train_patches = True
@@ -152,9 +152,6 @@ for v in ['t2m', 'tp']:
                                                    region=model.region, batch_size=model.bs, load=True, reduce_sample_size=None,
                                                    patch_stride=model.patch_stride, fraction=model.patch_na)
                 print('finished creating batches')
-                if model_architecture == 'basis_func':  # drop since these attributes are very large
-                    model.basis = 0
-                    model.clim_probs = 0
             else:
                 dg_train = DataGeneratorGlobal(fct_train, obs_train, region=model.region,
                                                 batch_size=model.bs, load=True)
