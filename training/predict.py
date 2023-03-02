@@ -45,7 +45,7 @@ rn.seed(seed)
 folder = 'main'
 
 # file system
-path = 'local'  # 'server'
+path = 'server'  # 'local'  #
 cache_path, path_add_vars, path_model, path_pred, path_results = get_paths(path)
 
 #%%
@@ -69,7 +69,6 @@ for filename in os.listdir(f'{path_model}{folder}'):
                                                            'feature_selection', 'unet_param_opt', 'early_models']):
         continue
 
-    print(name)
 #%%
 
 # =============================================================================
@@ -93,10 +92,13 @@ for filename in os.listdir(f'{path_model}{folder}'):
 
     output_dims = params['output_dims'].values[0]
     input_dims = params['input_dims'].values[0]
-    basis_rad = params['radius_basis_func'].values[0]
+
     train_patches = params['train_patches'].values[0]
     region = params['region'].values[0]
     model_architecture = params['model_architecture'].values[0]
+
+    if model_architecture == 'basis_func':
+      basis_rad = int(params['radius_basis_func'].values[0])
 
     # standard param:
     n_bins = 3

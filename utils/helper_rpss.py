@@ -35,6 +35,12 @@ def compute_rpss(name, agg_domain='global', cache_path='../template/data', folde
         else:
             ds_pred = xr.open_dataset(f'{path_pred}{folder}/global_pred_{name}_2020_raw.nc')
 
+        if agg_domain == 'NH':
+            ds_pred = ds_pred.sel(latitude = slice(90,30))
+        if agg_domain == 'tropics':
+            ds_pred = ds_pred.sel(latitude = slice(30,-30))
+        if agg_domain == 'SH':
+            ds_pred = ds_pred.sel(latitude = slice(-30, -90))
         if agg_domain == 'midlats':
             ds_pred = ds_pred.sel(latitude=slice(60, 40))
         if agg_domain == 'europe':
