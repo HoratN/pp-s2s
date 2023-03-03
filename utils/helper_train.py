@@ -32,8 +32,20 @@ def fit_model(self, cnn, dg_train, dg_valid, call_back, delayed_early_stop, cpro
                                                     restore_best_weights=True, min_delta=0.001)
 
     # compile models
-    cnn.compile(loss=keras.losses.CategoricalCrossentropy(),
-                metrics=['accuracy'], optimizer=optimizer)
+    if self.weighted_loss == True:
+        compute_weighted_loss = get_weighted_loss_function(self.train_patches)
+        if self.train_patches == True:
+            cnn.add_loss(compute_weighted_loss(cnn.target, cnn.out, cnn.weight_mask))
+            cnn.compile(loss=None,  # weighted_loss(mask = mask_weighted),
+                        metrics=['accuracy', keras.metrics.CategoricalCrossentropy()],
+                        optimizer=optimizer)
+        else:
+            cnn.compile(loss=compute_weighted_loss(mask=self.weights),
+                        metrics=['accuracy', keras.metrics.CategoricalCrossentropy()],
+                        optimizer=optimizer)
+    else:
+        cnn.compile(loss=keras.losses.CategoricalCrossentropy(),
+                    metrics=['accuracy'], optimizer=optimizer)
 
     # fit models
     if call_back:
@@ -50,6 +62,34 @@ def fit_model(self, cnn, dg_train, dg_valid, call_back, delayed_early_stop, cpro
     else:
         self.hist = cnn.fit(dg_train, epochs=self.ep, validation_data=dg_valid,
                        callbacks=[PrintLearningRate()])
+
+
+def get_weighted_loss_function(train_patches):
+    if train_patches == True:
+        def compute_weighted_loss(y_true, y_pred, mask):
+            cce_func = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
+            cce = cce_func(y_true, y_pred)
+            cce_weighted = tf.cast(cce, dtype=tf.float32) * mask
+            loss_ = tf.math.reduce_sum(cce_weighted) / tf.math.reduce_sum(mask)
+            return loss_
+
+    else:
+        def compute_weighted_loss(mask):
+            # double function needed, since loss can only take y_true and y_pred
+            # as input, but we also need to pass the weights
+            def loss_(y_true, y_pred):
+                cce_func = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)
+                cce = cce_func(y_true, y_pred)
+
+                mask_tiled = tf.tile(tf.expand_dims(tf.constant(mask, dtype=tf.float32),
+                                                    axis=0),
+                                     (tf.shape(y_pred)[0], 1, 1))
+                cce_weighted = tf.cast(cce, dtype=tf.float32) * mask_tiled
+                return tf.math.reduce_sum(cce_weighted) / tf.math.reduce_sum(mask_tiled)
+
+            return loss_
+
+    return compute_weighted_loss
 
 
 class CustomStopper(keras.callbacks.EarlyStopping):
@@ -96,7 +136,7 @@ def save_model_info(model, model_name, v, lead_time, dg_train_len, fold_no, fct_
     
     setup = pd.DataFrame(
                  columns=['model_name', 'target_variable', 'lead_time', 'model_architecture',
-                          'train_patches', 'fold_no', 'train_time', 'epochs', 'batch_size',
+                          'train_patches', 'weighted_loss', 'fold_no', 'train_time', 'epochs', 'batch_size',
                           'n_trainbatches', 'callback', 'features',
                            'output_dims', 'input_dims', 'patch_stride', 'patch_na', 'region',
                           'optimizer', 'learn_rate', 'learn_decay', 'early_stopping',

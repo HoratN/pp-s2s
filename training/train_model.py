@@ -33,7 +33,7 @@ import os
 import random as rn
 
 path_data = 'server'  # 'local'  #
-folder = 'main'
+folder = 'weighted_main'
 cache_path, path_add_vars, path_model, path_pred, path_results = get_paths(path_data)
 
 # %%
@@ -42,7 +42,7 @@ cache_path, path_add_vars, path_model, path_pred, path_results = get_paths(path_
 # =============================================================================
 
 for v in ['t2m', 'tp']:
-    for lead_time in [0,1]:
+    for lead_time in [0, 1]:
 
         # v = 't2m'  # 'tp'  #
         # lead_time = 0  # 1  #
@@ -62,15 +62,16 @@ for v in ['t2m', 'tp']:
 
         model_architecture = 'basis_func'# 'conv_trans'  #'unet'  #
         train_patches = True  #  False  #
+        weighted_loss = True  #  False  #
         if model_architecture != 'unet':
             train_patches = True
         print(f'Architecture: {model_architecture} \npatch-wise: {train_patches}')
 
         # load models and associated params
         if model_architecture == 'unet':
-            model = Unet(v, train_patches)
+            model = Unet(v, train_patches, weighted_loss)
         else:
-            model = StandardCnn(v, model_architecture)
+            model = StandardCnn(v, model_architecture, weighted_loss)
 
         # set env random seeds
         os.environ['TF_CUDNN_DETERMINISTIC'] = 'true'
@@ -105,6 +106,13 @@ for v in ['t2m', 'tp']:
             clim_probs = np.log(1 / 3) * np.ones((n_xy, model.n_bins))
             model.basis = basis
             model.clim_probs = clim_probs
+
+        # compute weights for global model
+        if (weighted_loss == True) & (train_patches == False):
+            weights = np.cos(np.deg2rad(np.abs(mask.latitude)))
+            mask_weighted = (mask[v].isel(lead_time=lead_time).transpose('longitude', 'latitude'
+                                                                         ).fillna(0) * weights).values
+            model.weights = mask_weighted
 
         # %%
         # =============================================================================
@@ -145,12 +153,12 @@ for v in ['t2m', 'tp']:
                 dg_train = DataGeneratorMultipatch(fct_train, obs_train, model=model, input_dims=model.input_dims,
                                                    output_dims=model.output_dims, mask_v=mask[v].isel(lead_time=0),
                                                    region=model.region, batch_size=model.bs, load=True, reduce_sample_size=None,
-                                                   patch_stride=model.patch_stride, fraction=model.patch_na)
+                                                   patch_stride=model.patch_stride, fraction=model.patch_na, weighted=weighted_loss)
 
                 dg_valid = DataGeneratorMultipatch(fct_valid, obs_valid, model=model, input_dims=model.input_dims,
                                                    output_dims=model.output_dims, mask_v=mask[v].isel(lead_time=0),
                                                    region=model.region, batch_size=model.bs, load=True, reduce_sample_size=None,
-                                                   patch_stride=model.patch_stride, fraction=model.patch_na)
+                                                   patch_stride=model.patch_stride, fraction=model.patch_na, weighted=weighted_loss)
                 print('finished creating batches')
             else:
                 dg_train = DataGeneratorGlobal(fct_train, obs_train, region=model.region,
@@ -164,7 +172,11 @@ for v in ['t2m', 'tp']:
             # build and fit model
             # =============================================================================
 
-            cnn = model.build_model(dg_train[0][0][0].shape)
+            if (weighted_loss == True) & (train_patches == True):
+                # additionally, shape of target and weights needed for
+                cnn = model.build_model(dg_train[0][0][0].shape, [dg_train[0][0][-2].shape, dg_train[0][0][-1].shape])
+            else:
+                cnn = model.build_model(dg_train[0][0][0].shape)
             fit_model(model, cnn, dg_train, dg_valid, model.call_back, model.delayed_early_stop)
 
             end = time.time()
@@ -200,6 +212,6 @@ for v in ['t2m', 'tp']:
                 #            to_file=f'{path_results}architecture_{model.model_architecture}_{train_mode}_{v}.png')
 
                 # save model summary to file
-                with open(f'{path_results}architecture_{model.model_architecture}_{train_mode}_{v}.txt', 'w') as f:
+                with open(f'{path_results}architectures/{folder}/architecture_{model.model_architecture}_{train_mode}_{v}.txt', 'w') as f:
                     # Pass the file handle in as a lambda function to make it callable
                     cnn.summary(print_fn=lambda x: f.write(x + '\n'))

@@ -12,10 +12,11 @@ warnings.simplefilter("ignore")
 
 class StandardCnn:
 
-    def __init__(self, v, model_architecture):
+    def __init__(self, v, model_architecture, weighted_loss=False):
 
         self.model_architecture = model_architecture
         self.train_patches = True
+        self.weighted_loss = weighted_loss
 
         # params related to input/preproc.
         self.input_dims = 34
@@ -60,7 +61,7 @@ class StandardCnn:
         self.ep = 20
         self.patience = 3  # for callback
 
-    def build_model(self, dg_train_shape):
+    def build_model(self, dg_train_shape, dg_train_weight_target=None):
 
         inp_imgs = Input(shape=(dg_train_shape[1],
                                 dg_train_shape[2],
@@ -103,9 +104,23 @@ class StandardCnn:
 
         # matching input for chosen model
         if self.model_architecture == 'basis_func':
-            cnn = Model(inputs=[inp_imgs, inp_basis, inp_cl], outputs=out)
+            inputs = [inp_imgs, inp_basis, inp_cl]
         else:
-            cnn = Model(inputs=[inp_imgs], outputs=out)
+            inputs = [inp_imgs]
+
+        if self.weighted_loss == True:
+            weight_shape = dg_train_weight_target[0]
+            weights = Input(shape=(weight_shape[1], weight_shape[2],))
+            target_shape = dg_train_weight_target[1]
+            target = Input(shape=(target_shape[1], target_shape[2], target_shape[3],))
+
+            cnn = Model(inputs=[inputs] + [weights, target], outputs=out)
+
+            cnn.target = target
+            cnn.weight_mask = weights
+            cnn.out = out
+        else:
+            cnn = Model(inputs=[inputs], outputs=out)
 
         # cnn.summary()
 

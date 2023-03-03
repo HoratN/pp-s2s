@@ -12,10 +12,11 @@ warnings.simplefilter("ignore")
 
 class Unet:
 
-    def __init__(self, v, train_patches):
+    def __init__(self, v, train_patches, weighted_loss=False):
 
         self.train_patches = train_patches
         self.model_architecture = 'unet'
+        self.weighted_loss = weighted_loss
 
         # params related to input/preproc.
         if self.train_patches == False:
@@ -63,7 +64,7 @@ class Unet:
             if self.call_back == False:
                 self.ep = 30
 
-    def build_model(self,  dg_train_shape):
+    def build_model(self,  dg_train_shape, dg_train_weight_target=None):
         inp_imgs = Input(shape=(dg_train_shape[1],
                                 dg_train_shape[2],
                                 dg_train_shape[3],))  # fcts
@@ -101,7 +102,19 @@ class Unet:
             if self.region == 'global':
                 out = Cropping2D(cropping=((8, 8), (4, 3)))(out)
 
-        cnn = Model(inputs=[inp_imgs], outputs=out)
+        if (self.train_patches == True) & (self.weighted_loss == True):
+            weight_shape = dg_train_weight_target[0]
+            weights = Input(shape=(weight_shape[1], weight_shape[2],))
+            target_shape = dg_train_weight_target[1]
+            target = Input(shape=(target_shape[1], target_shape[2], target_shape[3],))
+
+            cnn = Model(inputs=[inp_imgs] + [weights, target], outputs=out)
+
+            cnn.target = target
+            cnn.weight_mask = weights
+            cnn.out = out
+        else:
+            cnn = Model(inputs=[inp_imgs], outputs=out)
 
         # cnn.summary()
 
