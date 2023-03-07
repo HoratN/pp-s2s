@@ -107,8 +107,9 @@ class Unet:
             weights = Input(shape=(weight_shape[1], weight_shape[2],))
             target_shape = dg_train_weight_target[1]
             target = Input(shape=(target_shape[1], target_shape[2], target_shape[3],))
+            inputs = [inp_imgs]
 
-            cnn = Model(inputs=[inp_imgs] + [weights, target], outputs=out)
+            cnn = Model(inputs=[inputs] + [weights, target], outputs=out)
 
             cnn.target = target
             cnn.weight_mask = weights

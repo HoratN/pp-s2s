@@ -9,7 +9,7 @@ from utils.helper_datagenerator import pad_earth, flip_antimeridian
 from utils.helper_load_data import get_basis
 
 
-def slide_predict(fct, input_dims, output_dims, cnn, model_architecture, basis_rad, n_bins):
+def slide_predict(fct, input_dims, output_dims, cnn, model_architecture, basis_rad, n_bins, weighted_loss):
     """"slide the model that was trained on one specific patch over the earth
     to create predictions everywhere
 
@@ -58,6 +58,10 @@ def slide_predict(fct, input_dims, output_dims, cnn, model_architecture, basis_r
                 input_list = [
                     patch.fillna(0.).to_array().transpose('forecast_time', ..., 'longitude', 'latitude',
                                                           'variable').values]
+            if weighted_loss == True:
+                # provide dummy input to loss layers
+                input_list = [input_list]+[np.zeros((len(patch.forecast_time), output_dims, output_dims)),
+                                           np.zeros((len(patch.forecast_time), output_dims, output_dims,3))]
 
             preds = cnn.predict(input_list).squeeze()
 

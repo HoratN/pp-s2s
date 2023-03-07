@@ -12,7 +12,7 @@ warnings.simplefilter("ignore")
 
 path = 'server'  # 'local'  #
 cache_path, path_add_vars, path_model, path_pred, path_results = get_paths(path)
-folder = 'main'
+folder = 'weighted_main'  # 'main'
 
 #%%
 # =============================================================================
@@ -40,7 +40,7 @@ if compute_global_rpss == True:
 
     if len(ls_rpss) > 0:  # if computed rpss for at least one prediction
         # append rpss to file
-        if os.path.isfile('rpss.csv'):
+        if os.path.isfile(f'{path_results}rpss.csv'):
             pd.concat(ls_rpss, axis=0).to_csv(f'{path_results}rpss.csv', sep=';', index=True, mode='a', header=None)
         else:
             pd.concat(ls_rpss, axis=0).to_csv(f'{path_results}rpss.csv', sep=';', index=True, mode='a')
@@ -69,7 +69,7 @@ if compute_regional_rpss == True:
 
     if len(ls_rpss) > 0:  # if computed rpss for at least one prediction
         # append rpss to file
-        if os.path.isfile('rpss_regional.csv'):
+        if os.path.isfile(f'{path_results}rpss_regional.csv'):
             pd.concat(ls_rpss, axis=0).to_csv(f'{path_results}rpss_regional.csv', sep=';', index=True, mode='a', header=None)
         else:
             pd.concat(ls_rpss, axis=0).to_csv(f'{path_results}rpss_regional.csv', sep=';', index=True, mode='a')

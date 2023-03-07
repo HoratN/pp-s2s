@@ -42,7 +42,7 @@ rn.seed(seed)
 # =============================================================================
 
 # folder where models are, and where the submissions should be saved
-folder = 'main'
+folder = 'weighted_main'  # 'main'
 
 # file system
 path = 'server'  # 'local'  #
@@ -98,7 +98,11 @@ for filename in os.listdir(f'{path_model}{folder}'):
     model_architecture = params['model_architecture'].values[0]
 
     if model_architecture == 'basis_func':
-      basis_rad = int(params['radius_basis_func'].values[0])
+        basis_rad = int(params['radius_basis_func'].values[0])
+    else:
+        basis_rad = 0
+
+    weighted_loss = params['weighted_loss'].values[0]
 
     # standard param:
     n_bins = 3
@@ -131,6 +135,7 @@ for filename in os.listdir(f'{path_model}{folder}'):
 # =============================================================================
 
     cnn = keras.models.load_model(path_to_model, compile=False)
+
 #%%
 # =============================================================================
 # predict for training data
@@ -138,7 +143,7 @@ for filename in os.listdir(f'{path_model}{folder}'):
 
     if train_patches == True:
         # predict globally using the trained local model
-        da = slide_predict(fct_train, input_dims, output_dims, cnn, model_architecture, basis_rad, n_bins)
+        da = slide_predict(fct_train, input_dims, output_dims, cnn, model_architecture, basis_rad, n_bins, weighted_loss)
     else:
         da = global_predict(fct_train, cnn, region=region)
 
@@ -154,7 +159,7 @@ for filename in os.listdir(f'{path_model}{folder}'):
 # =============================================================================
 
     if train_patches == True:
-        da_2020 = slide_predict(fct_2020, input_dims, output_dims, cnn, model_architecture, basis_rad, n_bins)
+        da_2020 = slide_predict(fct_2020, input_dims, output_dims, cnn, model_architecture, basis_rad, n_bins, weighted_loss)
     else:
         da_2020 = global_predict(fct_2020, cnn, region=region)
 

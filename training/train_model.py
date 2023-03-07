@@ -60,12 +60,12 @@ for v in ['t2m', 'tp']:
         # models architecture and hyper-parameters
         # =============================================================================
 
-        model_architecture = 'basis_func'# 'conv_trans'  #'unet'  #
+        model_architecture = 'unet'  #'basis_func'# 'conv_trans'  #
         train_patches = True  #  False  #
         weighted_loss = True  #  False  #
         if model_architecture != 'unet':
             train_patches = True
-        print(f'Architecture: {model_architecture} \npatch-wise: {train_patches}')
+        print(f'Architecture: {model_architecture} \npatch-wise: {train_patches} \nweighted loss: {weighted_loss}')
 
         # load models and associated params
         if model_architecture == 'unet':
