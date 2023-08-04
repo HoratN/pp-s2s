@@ -3,7 +3,7 @@ import pandas as pd
 import xarray as xr
 xr.set_options(display_style='text')
 
-from utils.helper_rpss import compute_rpss
+from utils.helper_rpss import compute_rpss, compute_rpss_of_mean
 from utils.paths import get_paths
 
 import os
@@ -98,3 +98,10 @@ if compute_spatial_rpss == True:
                 print(name)
                 v = filename.split('_')[0]
                 get_spatial_rpss(name, cache_path=cache_path, folder=folder, path_pred=path_pred)
+
+# =============================================================================
+# compute RPSS of mean predictions: global, regional, spatial
+# =============================================================================
+
+compute_mean_rpss = True
+compute_rpss_of_mean(path_pred, f'{folder}_mean', ['global', 'NH', 'tropics', 'SH'], cache_path, path_results)

@@ -4,21 +4,26 @@ import xarray as xr
 xr.set_options(display_style='text')
 import xskillscore as xs
 
+import os
+
 import warnings
 warnings.simplefilter("ignore")
 
 
-def compute_rpss(name, agg_domain='global', cache_path='../template/data', folder='', path_pred='../submissions/'):
+def compute_rpss(name, agg_domain='global', cache_path='../template/data', folder='', path_pred='../submissions/',
+                 mean=False):
     """
     computes global average rpss for predictions of the model with the given name
 
     Parameters
     ----------
+    mean
     name: string, name of model (of format {v}_{lead time}_{predictor vars}_{date}_{time}
     agg_domain: string, one of global, midlats, europe
     cache_path: string, path to observations / ground truth
     folder: string, folder where model and predictions are saved
     path_pred: string, path to the predictions
+    mean: bool, whether the rpss should be computed from the average predictions
 
     Returns
     -------
@@ -29,11 +34,16 @@ def compute_rpss(name, agg_domain='global', cache_path='../template/data', folde
 
     # train
     for data in ['train', 'test']:
-
-        if data == 'train':
-            ds_pred = xr.open_dataset(f'{path_pred}{folder}/global_pred_{name}_allyears_raw.nc')
+        if mean == False:
+            if data == 'train':
+                ds_pred = xr.open_dataset(f'{path_pred}{folder}/global_pred_{name}_allyears_raw.nc')
+            else:
+                ds_pred = xr.open_dataset(f'{path_pred}{folder}/global_pred_{name}_2020_raw.nc')
         else:
-            ds_pred = xr.open_dataset(f'{path_pred}{folder}/global_pred_{name}_2020_raw.nc')
+            if data == 'train':
+                continue
+            else:
+                ds_pred = xr.open_dataset(f'{path_pred}{folder}/mean_{name}_2020_raw.nc')
 
         if agg_domain == 'NH':
             ds_pred = ds_pred.sel(latitude = slice(90,30))
@@ -93,10 +103,10 @@ def skill_by_year_single(preds, cache_path='../template/data', adapt=False, spat
         obs_p = obs_p.sel(forecast_time=preds.forecast_time.values).compute()
 
     # climatology
-    if (2020 in preds.forecast_time.dt.year) and (clim_baseline == True):
+    if (2020 in preds.forecast_time.dt.year) and (type(clim_baseline) == bool) and (clim_baseline == True):
         clim_p = xr.open_dataset(f'{cache_path}/ecmwf_recalibrated_benchmark_2020_biweekly_terciled.nc')
-    elif (clim_baseline != False) and (clim_baseline != True):
-        clim_p = clim_baseline
+    elif type(clim_baseline) != bool:
+        clim_p = clim_baseline.copy()
     else:  # clim_baseline == False:
         clim_p = xr.ones_like(obs_p) * 1 / 3
 
@@ -127,6 +137,7 @@ def skill_by_year_single(preds, cache_path='../template/data', adapt=False, spat
 
     # https://renkulab.io/gitlab/aaron.spring/s2s-ai-challenge-template/-/issues/50
     rps_ML = rps_ML.where(expect, other=2)  # assign RPS=2 where value was expected but NaN found
+    rps_clim = rps_clim.where(expect, other=2)
 
     # following Weigel 2007: https://doi.org/10.1175/MWR3280.1
     rpss = 1 - (rps_ML.groupby('forecast_time.year').mean() / rps_clim.groupby('forecast_time.year').mean())
@@ -172,3 +183,48 @@ def get_spatial_rpss(name, cache_path='../template/data', folder='', path_pred='
     ds_rpss = xr.concat(ls_data, 'year')
     ds_rpss.to_netcdf(f'{path_pred}{folder}/rpss_{name}_raw.nc')
     return
+
+
+def compute_rpss_of_mean(path_pred, folder, agg_domain, cache_path, path_results):
+    # folder should be of format: f'{pred_folder}_mean'
+    ls_rpss_global = []
+    ls_rpss_regional = []
+
+    for filename in os.listdir(f'{path_pred}{folder}'):
+
+        if filename[0:5] != 'mean_':
+            continue
+
+        if filename.find('2023') != -1:  # use this to only compute rpss for new predictions
+            print(filename)
+            name = filename[5:-12]
+
+            for i in agg_domain:
+                if i == 'global':
+                    rpss_global = compute_rpss(name, i, folder=folder, cache_path=cache_path,
+                                               path_pred=path_pred, mean=True)
+                    rpss_global = rpss_global[['RPSS', 'model_name', 'data', 'aggregation_domain']]
+                    ls_rpss_global.append(rpss_global)
+                if i in ['NH', 'tropics', 'SH']:
+                    rpss_regional = compute_rpss(name, i, folder=folder, cache_path=cache_path,
+                                                 path_pred=path_pred, mean=True)
+                    rpss_regional = rpss_regional[['RPSS', 'model_name', 'data', 'aggregation_domain']]
+                    ls_rpss_regional.append(rpss_regional)
+
+            ds_pred = xr.open_dataset(f'{path_pred}{folder}/{filename}')
+            ds_rpss = skill_by_year_single(ds_pred, adapt=True, cache_path=cache_path, spatial=True)
+            ds_rpss.to_netcdf(f'{path_pred}{folder}/rpss_{name}.nc')
+
+    if len(ls_rpss_regional) > 0:  # if computed rpss for at least one prediction
+        # append rpss to file
+        if os.path.isfile(f'{path_results}rpss_regional_mean.csv'):
+            pd.concat(ls_rpss_regional, axis=0).to_csv(f'{path_results}rpss_regional_mean.csv', sep=';', index=True, mode='a', header=None)
+        else:
+            pd.concat(ls_rpss_regional, axis=0).to_csv(f'{path_results}rpss_regional_mean.csv', sep=';', index=True, mode='a')
+    if len(ls_rpss_global) > 0:
+        if os.path.isfile(f'{path_results}rpss_mean.csv'):
+            pd.concat(ls_rpss_global, axis=0).to_csv(f'{path_results}rpss_mean.csv', sep=';', index=True, mode='a', header=None)
+        else:
+            pd.concat(ls_rpss_global, axis=0).to_csv(f'{path_results}rpss_mean.csv', sep=';', index=True, mode='a')
+    else:
+        print('no predictions available')
