@@ -31,6 +31,7 @@ def preprocess_input(train, v, path_data, lead_time, valid=None, ens_mean=True, 
     valid: DataSet, if given, also preprocessed
 
     """
+
     print('use ensemble mean: ', ens_mean)
     if valid != None:
         assert (train.keys() == valid.keys()), f'train and validation set do not contain the same variables: train {list(train.keys())}, val {list(valid.keys())}'
@@ -47,7 +48,8 @@ def preprocess_input(train, v, path_data, lead_time, valid=None, ens_mean=True, 
 
     # remove annual cycle from non-target features
     # don't remove annual cycle from land-sea mask and target variable
-    train.update(rm_annualcycle(train[ls_rm_annual], train[ls_rm_annual]))
+    if len(ls_rm_annual) > 0:
+        train.update(rm_annualcycle(train[ls_rm_annual], train[ls_rm_annual]))
 
     # preprocessing for target var: subtract tercile edges from target variable
     if len(ls_target_vars) > 0:

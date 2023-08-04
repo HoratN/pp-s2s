@@ -319,9 +319,9 @@ def flip_antimeridian(ds, to='Pacific', lonn='lon'):
 
     attrs = ds[lonn].attrs
 
-    if to.lower() == 'europe' and not antimeridian_pacific(ds):
+    if to.lower() == 'europe' and not antimeridian_pacific(ds, lonn):
         return ds  # already correct, do nothing
-    elif to.lower() == 'pacific' and antimeridian_pacific(ds):
+    elif to.lower() == 'pacific' and antimeridian_pacific(ds, lonn):
         return ds  # already correct, do nothing
     elif to.lower() == 'europe':
         ds = ds.assign_coords(**{lonn: (ds[lonn] % 360)})
