@@ -1,7 +1,7 @@
-# Deep learning for post-processing global probabilistic forecasts on sub-seasonal time scales
+# Deep Learning for Postprocessing Global Probabilistic Forecasts on Subseasonal Time Scales
 
-This repository provides Python code for post-processing global probabilistic forecasts for temperature and precipitation on sub-seasonal time scales as described in the paper:
-> Horat, N., Lerch, S., 2023. Deep learning for post-processing global probabilistic forecasts on sub-seasonal time scales. *arXiv preprint: [2306.15956](https://arxiv.org/abs/2306.15956)*
+This repository provides Python code accompanying the paper
+> Horat, N. and Lerch, S. (2024). Deep Learning for Postprocessing Global Probabilistic Forecasts on Subseasonal Time Scales. Monthly Weather Review, 152, 667–687, https://doi.org/10.1175/MWR-D-23-0150.1.
      
 
 # Data
